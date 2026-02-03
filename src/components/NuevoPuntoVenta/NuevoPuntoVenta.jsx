@@ -3,18 +3,50 @@ import './NuevoPuntoVenta.css'
 
 function NuevoPuntoVenta() {
   const [tipoDocumento, setTipoDocumento] = useState('boleta')
+  const [conDNI, setConDNI] = useState(true)
+  const [clienteSeleccionado, setClienteSeleccionado] = useState('')
+  const [showNuevoClienteModal, setShowNuevoClienteModal] = useState(false)
+  const [showProductoModal, setShowProductoModal] = useState(false)
+  const [productoSeleccionado, setProductoSeleccionado] = useState(null)
+  const [itemModal, setItemModal] = useState({
+    productoId: '',
+    nombre: '',
+    detalleAdicional: '',
+    cantidad: 1,
+    precioUnitarioConIGV: 0,
+    subtotal: 0,
+    igvLinea: 0,
+    total: 0
+  })
+  const [nuevoCliente, setNuevoCliente] = useState({
+    tipoDoc: 'dni',
+    numeroDoc: '',
+    nombre: '',
+    direccion: '',
+    email: ''
+  })
+
+  // Datos de ejemplo - clientes registrados
+  const [clientes, setClientes] = useState([
+    { id: 1, tipoDoc: 'dni', numeroDoc: '12345678', nombre: 'Juan Pérez García', direccion: 'Av. Lima 123', email: 'juan@email.com' },
+    { id: 2, tipoDoc: 'dni', numeroDoc: '87654321', nombre: 'María López Ruiz', direccion: 'Jr. Cusco 456', email: 'maria@email.com' },
+    { id: 3, tipoDoc: 'ruc', numeroDoc: '20123456789', nombre: 'Empresa ABC S.A.C.', direccion: 'Av. Industrial 789', email: 'contacto@abc.com' },
+  ])
+
+  // Datos de ejemplo - productos
+  const productos = [
+    { id: 1, codigo: 'PROD001', nombre: 'Laptop HP 15.6"', precioBase: 2500.00 },
+    { id: 2, codigo: 'PROD002', nombre: 'Mouse Inalámbrico', precioBase: 45.00 },
+    { id: 3, codigo: 'PROD003', nombre: 'Teclado Mecánico', precioBase: 180.00 },
+    { id: 4, codigo: 'SERV001', nombre: 'Servicio de Mantenimiento', precioBase: 150.00 },
+    { id: 5, codigo: 'PROD004', nombre: 'Monitor 24"', precioBase: 650.00 },
+  ]
+
   const [formData, setFormData] = useState({
     // Datos del emisor
     rucEmisor: '',
     razonSocialEmisor: '',
     direccionEmisor: '',
-    
-    // Datos del cliente
-    tipoDocCliente: 'dni',
-    numeroDocCliente: '',
-    nombreCliente: '',
-    direccionCliente: '',
-    emailCliente: '',
     
     // Datos del documento
     serie: '',
@@ -23,7 +55,7 @@ function NuevoPuntoVenta() {
     moneda: 'PEN',
     
     // Items
-    items: [{ descripcion: '', cantidad: 1, precioUnitario: 0, subtotal: 0 }],
+    items: [],
     
     // Totales
     subtotal: 0,
@@ -39,60 +71,149 @@ function NuevoPuntoVenta() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleItemChange = (index, field, value) => {
-    const newItems = [...formData.items]
-    newItems[index][field] = value
-    
-    // Calcular subtotal del item
-    if (field === 'cantidad' || field === 'precioUnitario') {
-      const cantidad = field === 'cantidad' ? parseFloat(value) || 0 : parseFloat(newItems[index].cantidad) || 0
-      const precio = field === 'precioUnitario' ? parseFloat(value) || 0 : parseFloat(newItems[index].precioUnitario) || 0
-      newItems[index].subtotal = cantidad * precio
+  const handleConDNIChange = (e) => {
+    setConDNI(e.target.checked)
+    if (!e.target.checked) {
+      setClienteSeleccionado('')
+    }
+  }
+
+  const handleClienteChange = (e) => {
+    setClienteSeleccionado(e.target.value)
+  }
+
+  const handleProductoSelect = (e) => {
+    const productoId = e.target.value
+    if (!productoId) return
+
+    const producto = productos.find(p => p.id === parseInt(productoId))
+    if (producto) {
+      const precioConIGV = producto.precioBase * 1.18
+      const subtotal = producto.precioBase
+      const igvLinea = subtotal * 0.18
+      
+      setProductoSeleccionado(producto)
+      setItemModal({
+        productoId: producto.id,
+        nombre: producto.nombre,
+        detalleAdicional: '',
+        cantidad: 1,
+        precioUnitarioConIGV: parseFloat(precioConIGV.toFixed(2)),
+        subtotal: parseFloat(subtotal.toFixed(2)),
+        igvLinea: parseFloat(igvLinea.toFixed(2)),
+        total: parseFloat(precioConIGV.toFixed(2))
+      })
+      setShowProductoModal(true)
+    }
+    // Reset select
+    e.target.value = ''
+  }
+
+  const handleItemModalChange = (field, value) => {
+    setItemModal(prev => {
+      const newItem = { ...prev }
+      
+      if (field === 'precioUnitarioConIGV') {
+        const precioConIGV = parseFloat(value) || 0
+        // Precio con IGV = Subtotal + IGV = X + 0.18X = 1.18X
+        // Por lo tanto: X (subtotal) = Precio con IGV / 1.18
+        const subtotal = precioConIGV / 1.18
+        const igvLinea = subtotal * 0.18
+        
+        newItem.precioUnitarioConIGV = precioConIGV
+        newItem.subtotal = parseFloat(subtotal.toFixed(2))
+        newItem.igvLinea = parseFloat(igvLinea.toFixed(2))
+        newItem.total = parseFloat((newItem.cantidad * precioConIGV).toFixed(2))
+      } else if (field === 'cantidad') {
+        const cantidad = parseFloat(value) || 1
+        newItem.cantidad = cantidad
+        newItem.total = parseFloat((cantidad * newItem.precioUnitarioConIGV).toFixed(2))
+      } else {
+        newItem[field] = value
+      }
+      
+      return newItem
+    })
+  }
+
+  const handleAceptarItem = () => {
+    const newItem = {
+      ...itemModal,
+      id: Date.now() // ID único para el item
     }
     
-    // Calcular totales
-    const subtotal = newItems.reduce((acc, item) => acc + (item.subtotal || 0), 0)
-    const igv = subtotal * 0.18
-    const total = subtotal + igv
+    const newItems = [...formData.items, newItem]
+    const totales = calcularTotales(newItems)
     
     setFormData(prev => ({
       ...prev,
       items: newItems,
-      subtotal: subtotal.toFixed(2),
-      igv: igv.toFixed(2),
-      total: total.toFixed(2)
+      ...totales
     }))
+    
+    setShowProductoModal(false)
+    setProductoSeleccionado(null)
   }
 
-  const addItem = () => {
+  const handleEliminarItemModal = () => {
+    setShowProductoModal(false)
+    setProductoSeleccionado(null)
+  }
+
+  const calcularTotales = (items) => {
+    const subtotal = items.reduce((acc, item) => acc + (item.subtotal * item.cantidad), 0)
+    const igv = items.reduce((acc, item) => acc + (item.igvLinea * item.cantidad), 0)
+    const total = subtotal + igv
+    
+    return {
+      subtotal: parseFloat(subtotal.toFixed(2)),
+      igv: parseFloat(igv.toFixed(2)),
+      total: parseFloat(total.toFixed(2))
+    }
+  }
+
+  const removeItem = (itemId) => {
+    const newItems = formData.items.filter(item => item.id !== itemId)
+    const totales = calcularTotales(newItems)
+    
     setFormData(prev => ({
       ...prev,
-      items: [...prev.items, { descripcion: '', cantidad: 1, precioUnitario: 0, subtotal: 0 }]
+      items: newItems,
+      ...totales
     }))
   }
 
-  const removeItem = (index) => {
-    if (formData.items.length > 1) {
-      const newItems = formData.items.filter((_, i) => i !== index)
-      const subtotal = newItems.reduce((acc, item) => acc + (item.subtotal || 0), 0)
-      const igv = subtotal * 0.18
-      const total = subtotal + igv
-      
-      setFormData(prev => ({
-        ...prev,
-        items: newItems,
-        subtotal: subtotal.toFixed(2),
-        igv: igv.toFixed(2),
-        total: total.toFixed(2)
-      }))
+  // Funciones para el modal de nuevo cliente
+  const handleNuevoClienteChange = (e) => {
+    const { name, value } = e.target
+    setNuevoCliente(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleGuardarNuevoCliente = () => {
+    const nuevoClienteData = {
+      id: Date.now(),
+      ...nuevoCliente
     }
+    setClientes(prev => [...prev, nuevoClienteData])
+    setClienteSeleccionado(nuevoClienteData.id.toString())
+    setShowNuevoClienteModal(false)
+    setNuevoCliente({
+      tipoDoc: 'dni',
+      numeroDoc: '',
+      nombre: '',
+      direccion: '',
+      email: ''
+    })
   }
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    console.log('Documento a generar:', { tipoDocumento, ...formData })
+    const clienteData = conDNI ? clientes.find(c => c.id === parseInt(clienteSeleccionado)) : null
+    console.log('Documento a generar:', { tipoDocumento, conDNI, cliente: clienteData, ...formData })
     alert(`${tipoDocumento === 'boleta' ? 'Boleta' : 'Factura'} electrónica generada exitosamente!`)
   }
+
+  const clienteActual = clientes.find(c => c.id === parseInt(clienteSeleccionado))
 
   return (
     <div className="nuevo-punto-venta">
@@ -173,63 +294,73 @@ function NuevoPuntoVenta() {
               <span className="section-icon">👤</span>
               Datos del Cliente
             </h2>
-            <div className="form-grid">
-              <div className="form-group">
-                <label>Tipo de Documento</label>
+            
+            {/* Checkbox Con DNI / Sin DNI */}
+            <div className="dni-checkbox-container">
+              <label className="checkbox-label">
+                <input 
+                  type="checkbox" 
+                  checked={conDNI} 
+                  onChange={handleConDNIChange}
+                />
+                <span className="checkbox-custom"></span>
+                Con DNI
+              </label>
+              <span className="dni-status">
+                {conDNI ? '(Se requiere seleccionar cliente)' : '(Venta sin identificación de cliente)'}
+              </span>
+            </div>
+
+            {/* Dropdown de clientes */}
+            <div className="cliente-selector-container">
+              <div className="form-group cliente-dropdown">
+                <label>Seleccionar Cliente</label>
                 <select 
-                  name="tipoDocCliente" 
-                  value={formData.tipoDocCliente}
-                  onChange={handleInputChange}
+                  value={clienteSeleccionado}
+                  onChange={handleClienteChange}
+                  disabled={!conDNI}
+                  required={conDNI}
                 >
-                  <option value="dni">DNI</option>
-                  <option value="ruc">RUC</option>
-                  <option value="ce">Carnet de Extranjería</option>
-                  <option value="pasaporte">Pasaporte</option>
+                  <option value="">-- Seleccione un cliente --</option>
+                  {clientes.map(cliente => (
+                    <option key={cliente.id} value={cliente.id}>
+                      {cliente.numeroDoc} - {cliente.nombre}
+                    </option>
+                  ))}
                 </select>
               </div>
-              <div className="form-group">
-                <label>Número de Documento</label>
-                <input 
-                  type="text" 
-                  name="numeroDocCliente" 
-                  value={formData.numeroDocCliente}
-                  onChange={handleInputChange}
-                  placeholder={formData.tipoDocCliente === 'dni' ? '12345678' : '20123456789'}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>{tipoDocumento === 'factura' ? 'Razón Social' : 'Nombre Completo'}</label>
-                <input 
-                  type="text" 
-                  name="nombreCliente" 
-                  value={formData.nombreCliente}
-                  onChange={handleInputChange}
-                  placeholder={tipoDocumento === 'factura' ? 'Empresa Cliente S.A.C.' : 'Juan Pérez García'}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Email</label>
-                <input 
-                  type="email" 
-                  name="emailCliente" 
-                  value={formData.emailCliente}
-                  onChange={handleInputChange}
-                  placeholder="cliente@email.com"
-                />
-              </div>
-              <div className="form-group full-width">
-                <label>Dirección del Cliente</label>
-                <input 
-                  type="text" 
-                  name="direccionCliente" 
-                  value={formData.direccionCliente}
-                  onChange={handleInputChange}
-                  placeholder="Dirección del cliente"
-                />
-              </div>
+              {conDNI && (
+                <button 
+                  type="button" 
+                  className="btn-nuevo-cliente"
+                  onClick={() => setShowNuevoClienteModal(true)}
+                >
+                  + Nuevo Cliente
+                </button>
+              )}
             </div>
+
+            {/* Mostrar datos del cliente seleccionado */}
+            {conDNI && clienteActual && (
+              <div className="cliente-info">
+                <div className="cliente-info-row">
+                  <span className="label">Documento:</span>
+                  <span>{clienteActual.tipoDoc.toUpperCase()}: {clienteActual.numeroDoc}</span>
+                </div>
+                <div className="cliente-info-row">
+                  <span className="label">Nombre:</span>
+                  <span>{clienteActual.nombre}</span>
+                </div>
+                <div className="cliente-info-row">
+                  <span className="label">Dirección:</span>
+                  <span>{clienteActual.direccion}</span>
+                </div>
+                <div className="cliente-info-row">
+                  <span className="label">Email:</span>
+                  <span>{clienteActual.email}</span>
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Sección: Datos del Documento */}
@@ -292,70 +423,70 @@ function NuevoPuntoVenta() {
               <span className="section-icon">📦</span>
               Productos / Servicios
             </h2>
-            <div className="items-table-container">
-              <table className="items-table">
-                <thead>
-                  <tr>
-                    <th>Descripción</th>
-                    <th>Cantidad</th>
-                    <th>Precio Unit.</th>
-                    <th>Subtotal</th>
-                    <th>Acción</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {formData.items.map((item, index) => (
-                    <tr key={index}>
-                      <td>
-                        <input 
-                          type="text"
-                          value={item.descripcion}
-                          onChange={(e) => handleItemChange(index, 'descripcion', e.target.value)}
-                          placeholder="Descripción del producto"
-                          required
-                        />
-                      </td>
-                      <td>
-                        <input 
-                          type="number"
-                          value={item.cantidad}
-                          onChange={(e) => handleItemChange(index, 'cantidad', e.target.value)}
-                          min="1"
-                          required
-                        />
-                      </td>
-                      <td>
-                        <input 
-                          type="number"
-                          value={item.precioUnitario}
-                          onChange={(e) => handleItemChange(index, 'precioUnitario', e.target.value)}
-                          min="0"
-                          step="0.01"
-                          required
-                        />
-                      </td>
-                      <td className="subtotal-cell">
-                        {formData.moneda === 'PEN' ? 'S/ ' : '$ '}
-                        {item.subtotal.toFixed(2)}
-                      </td>
-                      <td>
-                        <button 
-                          type="button" 
-                          className="btn-remove"
-                          onClick={() => removeItem(index)}
-                          disabled={formData.items.length === 1}
-                        >
-                          ✕
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <button type="button" className="btn-add-item" onClick={addItem}>
-                + Agregar Item
-              </button>
+            
+            {/* Dropdown para seleccionar producto */}
+            <div className="form-group producto-selector">
+              <label>Agregar Producto</label>
+              <select onChange={handleProductoSelect} defaultValue="">
+                <option value="">-- Seleccione un producto --</option>
+                {productos.map(producto => (
+                  <option key={producto.id} value={producto.id}>
+                    {producto.codigo} - {producto.nombre} (S/ {producto.precioBase.toFixed(2)})
+                  </option>
+                ))}
+              </select>
             </div>
+
+            {/* Tabla de items agregados */}
+            {formData.items.length > 0 && (
+              <div className="items-table-container">
+                <table className="items-table">
+                  <thead>
+                    <tr>
+                      <th>Producto</th>
+                      <th>Detalle</th>
+                      <th>Cant.</th>
+                      <th>P.U. (con IGV)</th>
+                      <th>Total</th>
+                      <th>Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {formData.items.map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.nombre}</td>
+                        <td>{item.detalleAdicional || '-'}</td>
+                        <td className="center">{item.cantidad}</td>
+                        <td className="right">
+                          {formData.moneda === 'PEN' ? 'S/ ' : '$ '}
+                          {item.precioUnitarioConIGV.toFixed(2)}
+                        </td>
+                        <td className="right total-cell">
+                          {formData.moneda === 'PEN' ? 'S/ ' : '$ '}
+                          {item.total.toFixed(2)}
+                        </td>
+                        <td className="center">
+                          <button 
+                            type="button" 
+                            className="btn-remove"
+                            onClick={() => removeItem(item.id)}
+                          >
+                            ✕
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {formData.items.length === 0 && (
+              <div className="no-items-message">
+                <span>📦</span>
+                <p>No hay productos agregados. Seleccione un producto del dropdown.</p>
+              </div>
+            )}
           </section>
 
           {/* Sección: Totales */}
@@ -363,15 +494,15 @@ function NuevoPuntoVenta() {
             <div className="totales-container">
               <div className="total-row">
                 <span>Subtotal:</span>
-                <span>{formData.moneda === 'PEN' ? 'S/ ' : '$ '}{formData.subtotal}</span>
+                <span>{formData.moneda === 'PEN' ? 'S/ ' : '$ '}{formData.subtotal.toFixed(2)}</span>
               </div>
               <div className="total-row">
                 <span>IGV (18%):</span>
-                <span>{formData.moneda === 'PEN' ? 'S/ ' : '$ '}{formData.igv}</span>
+                <span>{formData.moneda === 'PEN' ? 'S/ ' : '$ '}{formData.igv.toFixed(2)}</span>
               </div>
               <div className="total-row total-final">
                 <span>TOTAL:</span>
-                <span>{formData.moneda === 'PEN' ? 'S/ ' : '$ '}{formData.total}</span>
+                <span>{formData.moneda === 'PEN' ? 'S/ ' : '$ '}{formData.total.toFixed(2)}</span>
               </div>
             </div>
           </section>
@@ -404,6 +535,173 @@ function NuevoPuntoVenta() {
           </div>
         </form>
       </div>
+
+      {/* Modal de Producto */}
+      {showProductoModal && (
+        <div className="modal-overlay" onClick={handleEliminarItemModal}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Agregar Producto</h2>
+              <button className="modal-close" onClick={handleEliminarItemModal}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="producto-nombre-modal">
+                <span className="label">Producto:</span>
+                <span className="value">{itemModal.nombre}</span>
+              </div>
+              
+              <div className="form-group">
+                <label>Detalle Adicional</label>
+                <input 
+                  type="text"
+                  value={itemModal.detalleAdicional}
+                  onChange={(e) => handleItemModalChange('detalleAdicional', e.target.value)}
+                  placeholder="Descripción adicional (opcional)"
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Cantidad</label>
+                  <input 
+                    type="number"
+                    value={itemModal.cantidad}
+                    onChange={(e) => handleItemModalChange('cantidad', e.target.value)}
+                    min="1"
+                    step="1"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Precio Unitario (Con IGV)</label>
+                  <input 
+                    type="number"
+                    value={itemModal.precioUnitarioConIGV}
+                    onChange={(e) => handleItemModalChange('precioUnitarioConIGV', e.target.value)}
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Subtotal (Valor Venta)</label>
+                  <input 
+                    type="text"
+                    value={`S/ ${itemModal.subtotal.toFixed(2)}`}
+                    disabled
+                    className="disabled-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>IGV de la Línea (18%)</label>
+                  <input 
+                    type="text"
+                    value={`S/ ${itemModal.igvLinea.toFixed(2)}`}
+                    disabled
+                    className="disabled-input"
+                  />
+                </div>
+              </div>
+
+              <div className="total-linea">
+                <span className="label">Total de la Línea:</span>
+                <span className="value">S/ {itemModal.total.toFixed(2)}</span>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn-modal-delete" onClick={handleEliminarItemModal}>
+                Eliminar
+              </button>
+              <button type="button" className="btn-modal-accept" onClick={handleAceptarItem}>
+                Aceptar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Nuevo Cliente */}
+      {showNuevoClienteModal && (
+        <div className="modal-overlay" onClick={() => setShowNuevoClienteModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Nuevo Cliente</h2>
+              <button className="modal-close" onClick={() => setShowNuevoClienteModal(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Tipo de Documento</label>
+                  <select 
+                    name="tipoDoc"
+                    value={nuevoCliente.tipoDoc}
+                    onChange={handleNuevoClienteChange}
+                  >
+                    <option value="dni">DNI</option>
+                    <option value="ruc">RUC</option>
+                    <option value="ce">Carnet de Extranjería</option>
+                    <option value="pasaporte">Pasaporte</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Número de Documento</label>
+                  <input 
+                    type="text"
+                    name="numeroDoc"
+                    value={nuevoCliente.numeroDoc}
+                    onChange={handleNuevoClienteChange}
+                    placeholder={nuevoCliente.tipoDoc === 'dni' ? '12345678' : '20123456789'}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>{nuevoCliente.tipoDoc === 'ruc' ? 'Razón Social' : 'Nombre Completo'}</label>
+                <input 
+                  type="text"
+                  name="nombre"
+                  value={nuevoCliente.nombre}
+                  onChange={handleNuevoClienteChange}
+                  placeholder={nuevoCliente.tipoDoc === 'ruc' ? 'Empresa S.A.C.' : 'Juan Pérez García'}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Dirección</label>
+                <input 
+                  type="text"
+                  name="direccion"
+                  value={nuevoCliente.direccion}
+                  onChange={handleNuevoClienteChange}
+                  placeholder="Av. Principal 123, Lima"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Email</label>
+                <input 
+                  type="email"
+                  name="email"
+                  value={nuevoCliente.email}
+                  onChange={handleNuevoClienteChange}
+                  placeholder="cliente@email.com"
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn-modal-delete" onClick={() => setShowNuevoClienteModal(false)}>
+                Cancelar
+              </button>
+              <button type="button" className="btn-modal-accept" onClick={handleGuardarNuevoCliente}>
+                Guardar Cliente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
