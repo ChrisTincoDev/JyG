@@ -1,6 +1,7 @@
+import { Link } from 'react-router-dom'
 import './Home.css'
 
-function Home({ onNavigate }) {
+function Home() {
   return (
     <div className="home-page">
       <div className="hero-section">
@@ -8,12 +9,12 @@ function Home({ onNavigate }) {
           <h1>Sistema de Facturación Electrónica</h1>
           <p>Genera boletas y facturas electrónicas de manera rápida y sencilla</p>
           <div className="hero-actions">
-            <button className="btn-hero-primary" onClick={() => onNavigate('nuevo-punto-venta')}>
+            <Link to="/nuevo-punto-venta" className="btn-hero-primary">
               Generar Comprobante
-            </button>
-            <button className="btn-hero-secondary" onClick={() => onNavigate('productos')}>
+            </Link>
+            <Link to="/productos" className="btn-hero-secondary">
               Ver Productos
-            </button>
+            </Link>
           </div>
         </div>
       </div>

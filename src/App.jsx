@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Routes, Route } from 'react-router-dom'
 import './App.css'
 import Header from './components/Header/Header'
 import Home from './components/Home/Home'
@@ -7,31 +7,16 @@ import PuntosVenta from './components/PuntosVenta/PuntosVenta'
 import NuevoPuntoVenta from './components/NuevoPuntoVenta/NuevoPuntoVenta'
 
 function App() {
-  const [currentView, setCurrentView] = useState('home')
-
-  const handleNavigate = (view) => {
-    setCurrentView(view)
-  }
-
-  const renderView = () => {
-    switch (currentView) {
-      case 'productos':
-        return <Productos />
-      case 'puntos-venta':
-        return <PuntosVenta onNavigate={handleNavigate} />
-      case 'nuevo-punto-venta':
-        return <NuevoPuntoVenta />
-      case 'home':
-      default:
-        return <Home onNavigate={handleNavigate} />
-    }
-  }
-
   return (
     <div className="app">
-      <Header onNavigate={handleNavigate} currentView={currentView} />
+      <Header />
       <main className="main-content">
-        {renderView()}
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/productos" element={<Productos />} />
+          <Route path="/puntos-venta" element={<PuntosVenta />} />
+          <Route path="/nuevo-punto-venta" element={<NuevoPuntoVenta />} />
+        </Routes>
       </main>
     </div>
   )

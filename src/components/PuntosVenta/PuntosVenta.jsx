@@ -1,24 +1,25 @@
+import { Link } from 'react-router-dom'
 import './PuntosVenta.css'
 
-function PuntosVenta({ onNavigate }) {
+function PuntosVenta() {
   const puntosVentaDemo = [
-    { 
-      id: 1, 
-      nombre: 'Punto de Venta Central', 
+    {
+      id: 1,
+      nombre: 'Punto de Venta Central',
       direccion: 'Av. Principal 123, Lima',
       estado: 'activo',
       ultimaVenta: '2026-02-02'
     },
-    { 
-      id: 2, 
-      nombre: 'Sucursal Norte', 
+    {
+      id: 2,
+      nombre: 'Sucursal Norte',
       direccion: 'Jr. Las Flores 456, Independencia',
       estado: 'activo',
       ultimaVenta: '2026-02-01'
     },
-    { 
-      id: 3, 
-      nombre: 'Sucursal Sur', 
+    {
+      id: 3,
+      nombre: 'Sucursal Sur',
       direccion: 'Av. Los Héroes 789, San Juan de Miraflores',
       estado: 'inactivo',
       ultimaVenta: '2026-01-28'
@@ -33,9 +34,9 @@ function PuntosVenta({ onNavigate }) {
             <h1>Puntos de Venta</h1>
             <p>Administra todos tus puntos de venta</p>
           </div>
-          <button className="btn-nuevo" onClick={() => onNavigate('nuevo-punto-venta')}>
+          <Link to="/nuevo-punto-venta" className="btn-nuevo">
             + Nuevo Punto de Venta
-          </button>
+          </Link>
         </div>
 
         <div className="puntos-grid">
@@ -58,9 +59,9 @@ function PuntosVenta({ onNavigate }) {
                 </p>
               </div>
               <div className="punto-actions">
-                <button className="btn-action-card" onClick={() => onNavigate('nuevo-punto-venta')}>
+                <Link to="/nuevo-punto-venta" className="btn-action-card">
                   Generar Comprobante
-                </button>
+                </Link>
                 <button className="btn-action-secondary">
                   Ver Historial
                 </button>
