@@ -1,5 +1,18 @@
 import { useState } from 'react'
 import './NuevoPuntoVenta.css'
+import dataJson from '../../data/data.json'
+
+// Datos del emisor (desde JSON)
+const datosEmisor = dataJson.emisor
+
+// Productos (desde JSON)
+const productosAbarrotes = dataJson.productos.map(p => ({
+  id: p.id,
+  codigo: p.codigo,
+  nombre: p.nombre,
+  precioBase: p.precioCosto,
+  categoria: p.categoria
+}))
 
 function NuevoPuntoVenta() {
   const [tipoDocumento, setTipoDocumento] = useState('boleta')
@@ -7,9 +20,10 @@ function NuevoPuntoVenta() {
   const [clienteSeleccionado, setClienteSeleccionado] = useState('')
   const [showNuevoClienteModal, setShowNuevoClienteModal] = useState(false)
   const [showProductoModal, setShowProductoModal] = useState(false)
-  const [productoSeleccionado, setProductoSeleccionado] = useState(null)
+  const [showVistaPreviaModal, setShowVistaPreviaModal] = useState(false)
   const [itemModal, setItemModal] = useState({
     productoId: '',
+    codigo: '',
     nombre: '',
     detalleAdicional: '',
     cantidad: 1,
@@ -25,33 +39,34 @@ function NuevoPuntoVenta() {
     direccion: '',
     email: ''
   })
+  const [errorCliente, setErrorCliente] = useState('')
 
-  // Datos de ejemplo - clientes registrados
-  const [clientes, setClientes] = useState([
-    { id: 1, tipoDoc: 'dni', numeroDoc: '12345678', nombre: 'Juan Pérez García', direccion: 'Av. Lima 123', email: 'juan@email.com' },
-    { id: 2, tipoDoc: 'dni', numeroDoc: '87654321', nombre: 'María López Ruiz', direccion: 'Jr. Cusco 456', email: 'maria@email.com' },
-    { id: 3, tipoDoc: 'ruc', numeroDoc: '20123456789', nombre: 'Empresa ABC S.A.C.', direccion: 'Av. Industrial 789', email: 'contacto@abc.com' },
-  ])
+  // Datos de clientes desde JSON
+  const [clientes, setClientes] = useState(dataJson.clientes)
 
-  // Datos de ejemplo - productos
-  const productos = [
-    { id: 1, codigo: 'PROD001', nombre: 'Laptop HP 15.6"', precioBase: 2500.00 },
-    { id: 2, codigo: 'PROD002', nombre: 'Mouse Inalámbrico', precioBase: 45.00 },
-    { id: 3, codigo: 'PROD003', nombre: 'Teclado Mecánico', precioBase: 180.00 },
-    { id: 4, codigo: 'SERV001', nombre: 'Servicio de Mantenimiento', precioBase: 150.00 },
-    { id: 5, codigo: 'PROD004', nombre: 'Monitor 24"', precioBase: 650.00 },
-  ]
+  // Obtener fecha actual formateada
+  const obtenerFechaActual = () => {
+    const hoy = new Date()
+    return hoy.toISOString().split('T')[0]
+  }
+
+  const obtenerFechaFormateada = () => {
+    const hoy = new Date()
+    return hoy.toLocaleDateString('es-PE', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    })
+  }
+
+  // Serie automática según tipo de documento
+  const obtenerSerie = () => {
+    return tipoDocumento === 'boleta' ? 'B001' : 'F001'
+  }
 
   const [formData, setFormData] = useState({
-    // Datos del emisor
-    rucEmisor: '',
-    razonSocialEmisor: '',
-    direccionEmisor: '',
-    
     // Datos del documento
-    serie: '',
-    correlativo: '',
-    fechaEmision: new Date().toISOString().split('T')[0],
+    correlativo: '00000001',
     moneda: 'PEN',
     
     // Items
@@ -86,15 +101,15 @@ function NuevoPuntoVenta() {
     const productoId = e.target.value
     if (!productoId) return
 
-    const producto = productos.find(p => p.id === parseInt(productoId))
+    const producto = productosAbarrotes.find(p => p.id === parseInt(productoId))
     if (producto) {
       const precioConIGV = producto.precioBase * 1.18
       const subtotal = producto.precioBase
       const igvLinea = subtotal * 0.18
       
-      setProductoSeleccionado(producto)
       setItemModal({
         productoId: producto.id,
+        codigo: producto.codigo,
         nombre: producto.nombre,
         detalleAdicional: '',
         cantidad: 1,
@@ -152,12 +167,10 @@ function NuevoPuntoVenta() {
     }))
     
     setShowProductoModal(false)
-    setProductoSeleccionado(null)
   }
 
   const handleEliminarItemModal = () => {
     setShowProductoModal(false)
-    setProductoSeleccionado(null)
   }
 
   const calcularTotales = (items) => {
@@ -187,9 +200,52 @@ function NuevoPuntoVenta() {
   const handleNuevoClienteChange = (e) => {
     const { name, value } = e.target
     setNuevoCliente(prev => ({ ...prev, [name]: value }))
+    setErrorCliente('') // Limpiar error al escribir
+  }
+
+  const validarNuevoCliente = () => {
+    const { numeroDoc, nombre, direccion, email, tipoDoc } = nuevoCliente
+    
+    if (!numeroDoc.trim()) {
+      return 'El número de documento es obligatorio'
+    }
+    
+    // Validar longitud del documento
+    if (tipoDoc === 'dni' && numeroDoc.length !== 8) {
+      return 'El DNI debe tener 8 dígitos'
+    }
+    if (tipoDoc === 'ruc' && numeroDoc.length !== 11) {
+      return 'El RUC debe tener 11 dígitos'
+    }
+    
+    if (!nombre.trim()) {
+      return 'El nombre es obligatorio'
+    }
+    
+    if (!direccion.trim()) {
+      return 'La dirección es obligatoria'
+    }
+    
+    if (!email.trim()) {
+      return 'El email es obligatorio'
+    }
+    
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return 'El formato del email no es válido'
+    }
+    
+    return null // Sin errores
   }
 
   const handleGuardarNuevoCliente = () => {
+    const error = validarNuevoCliente()
+    if (error) {
+      setErrorCliente(error)
+      return
+    }
+
     const nuevoClienteData = {
       id: Date.now(),
       ...nuevoCliente
@@ -197,6 +253,7 @@ function NuevoPuntoVenta() {
     setClientes(prev => [...prev, nuevoClienteData])
     setClienteSeleccionado(nuevoClienteData.id.toString())
     setShowNuevoClienteModal(false)
+    setErrorCliente('')
     setNuevoCliente({
       tipoDoc: 'dni',
       numeroDoc: '',
@@ -209,8 +266,19 @@ function NuevoPuntoVenta() {
   const handleSubmit = (e) => {
     e.preventDefault()
     const clienteData = conDNI ? clientes.find(c => c.id === parseInt(clienteSeleccionado)) : null
-    console.log('Documento a generar:', { tipoDocumento, conDNI, cliente: clienteData, ...formData })
+    console.log('Documento a generar:', { 
+      tipoDocumento, 
+      conDNI, 
+      cliente: clienteData, 
+      serie: obtenerSerie(),
+      fechaEmision: obtenerFechaActual(),
+      ...formData 
+    })
     alert(`${tipoDocumento === 'boleta' ? 'Boleta' : 'Factura'} electrónica generada exitosamente!`)
+  }
+
+  const handleVistaPrevia = () => {
+    setShowVistaPreviaModal(true)
   }
 
   const clienteActual = clientes.find(c => c.id === parseInt(clienteSeleccionado))
@@ -244,50 +312,6 @@ function NuevoPuntoVenta() {
         </div>
 
         <form onSubmit={handleSubmit} className="documento-form">
-          {/* Sección: Datos del Emisor */}
-          <section className="form-section">
-            <h2 className="section-title">
-              <span className="section-icon">🏢</span>
-              Datos del Emisor
-            </h2>
-            <div className="form-grid">
-              <div className="form-group">
-                <label>RUC del Emisor</label>
-                <input 
-                  type="text" 
-                  name="rucEmisor" 
-                  value={formData.rucEmisor}
-                  onChange={handleInputChange}
-                  placeholder="20123456789"
-                  maxLength="11"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Razón Social</label>
-                <input 
-                  type="text" 
-                  name="razonSocialEmisor" 
-                  value={formData.razonSocialEmisor}
-                  onChange={handleInputChange}
-                  placeholder="JyG Empresa S.A.C."
-                  required
-                />
-              </div>
-              <div className="form-group full-width">
-                <label>Dirección</label>
-                <input 
-                  type="text" 
-                  name="direccionEmisor" 
-                  value={formData.direccionEmisor}
-                  onChange={handleInputChange}
-                  placeholder="Av. Principal 123, Lima"
-                  required
-                />
-              </div>
-            </div>
-          </section>
-
           {/* Sección: Datos del Cliente */}
           <section className="form-section">
             <h2 className="section-title">
@@ -374,12 +398,9 @@ function NuevoPuntoVenta() {
                 <label>Serie</label>
                 <input 
                   type="text" 
-                  name="serie" 
-                  value={formData.serie}
-                  onChange={handleInputChange}
-                  placeholder={tipoDocumento === 'boleta' ? 'B001' : 'F001'}
-                  maxLength="4"
-                  required
+                  value={obtenerSerie()}
+                  disabled
+                  className="disabled-input"
                 />
               </div>
               <div className="form-group">
@@ -397,10 +418,9 @@ function NuevoPuntoVenta() {
                 <label>Fecha de Emisión</label>
                 <input 
                   type="date" 
-                  name="fechaEmision" 
-                  value={formData.fechaEmision}
-                  onChange={handleInputChange}
-                  required
+                  value={obtenerFechaActual()}
+                  disabled
+                  className="disabled-input"
                 />
               </div>
               <div className="form-group">
@@ -429,7 +449,7 @@ function NuevoPuntoVenta() {
               <label>Agregar Producto</label>
               <select onChange={handleProductoSelect} defaultValue="">
                 <option value="">-- Seleccione un producto --</option>
-                {productos.map(producto => (
+                {productosAbarrotes.map(producto => (
                   <option key={producto.id} value={producto.id}>
                     {producto.codigo} - {producto.nombre} (S/ {producto.precioBase.toFixed(2)})
                   </option>
@@ -526,7 +546,7 @@ function NuevoPuntoVenta() {
 
           {/* Botones de acción */}
           <div className="form-actions">
-            <button type="button" className="btn-secondary">
+            <button type="button" className="btn-secondary" onClick={handleVistaPrevia}>
               Vista Previa
             </button>
             <button type="submit" className="btn-primary">
@@ -690,13 +710,152 @@ function NuevoPuntoVenta() {
                   placeholder="cliente@email.com"
                 />
               </div>
+
+              {/* Mensaje de error */}
+              {errorCliente && (
+                <div className="error-mensaje">
+                  {errorCliente}
+                </div>
+              )}
             </div>
             <div className="modal-footer">
-              <button type="button" className="btn-modal-delete" onClick={() => setShowNuevoClienteModal(false)}>
+              <button type="button" className="btn-modal-delete" onClick={() => {
+                setShowNuevoClienteModal(false)
+                setErrorCliente('')
+              }}>
                 Cancelar
               </button>
               <button type="button" className="btn-modal-accept" onClick={handleGuardarNuevoCliente}>
                 Guardar Cliente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Vista Previa */}
+      {showVistaPreviaModal && (
+        <div className="modal-overlay" onClick={() => setShowVistaPreviaModal(false)}>
+          <div className="modal-content modal-vista-previa" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Vista Previa del Comprobante</h2>
+              <button className="modal-close" onClick={() => setShowVistaPreviaModal(false)}>✕</button>
+            </div>
+            <div className="modal-body vista-previa-body">
+              {/* Comprobante */}
+              <div className="comprobante">
+                {/* Encabezado del comprobante */}
+                <div className="comprobante-header">
+                  <div className="empresa-info">
+                    <h3 className="empresa-nombre">{datosEmisor.razonSocial}</h3>
+                    <p className="empresa-direccion">{datosEmisor.direccion}</p>
+                    <p className="empresa-telefono">Tel: {datosEmisor.telefono}</p>
+                    <p className="empresa-encargado">Atendido por: {datosEmisor.encargado}</p>
+                  </div>
+                  <div className="documento-info">
+                    <p className="ruc-label">RUC: {datosEmisor.ruc}</p>
+                    <h4 className="documento-tipo">
+                      {tipoDocumento === 'boleta' ? 'BOLETA DE VENTA' : 'FACTURA'} ELECTRÓNICA
+                    </h4>
+                    <p className="documento-numero">{obtenerSerie()}-{formData.correlativo}</p>
+                  </div>
+                </div>
+
+                {/* Info documento */}
+                <div className="comprobante-info">
+                  <div className="info-row">
+                    <span className="info-label">Fecha de Emisión:</span>
+                    <span className="info-value">{obtenerFechaFormateada()}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="info-label">Moneda:</span>
+                    <span className="info-value">{formData.moneda === 'PEN' ? 'Soles (S/)' : 'Dólares ($)'}</span>
+                  </div>
+                  {conDNI && clienteActual && (
+                    <>
+                      <div className="info-row">
+                        <span className="info-label">Cliente:</span>
+                        <span className="info-value">{clienteActual.nombre}</span>
+                      </div>
+                      <div className="info-row">
+                        <span className="info-label">{clienteActual.tipoDoc.toUpperCase()}:</span>
+                        <span className="info-value">{clienteActual.numeroDoc}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Tabla de productos */}
+                <div className="comprobante-items">
+                  <table className="items-preview-table">
+                    <thead>
+                      <tr>
+                        <th>Código</th>
+                        <th>Descripción</th>
+                        <th>Cant.</th>
+                        <th>P.Unit.</th>
+                        <th>Importe</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {formData.items.length > 0 ? (
+                        formData.items.map((item) => (
+                          <tr key={item.id}>
+                            <td>{item.codigo}</td>
+                            <td>{item.nombre}{item.detalleAdicional ? ` - ${item.detalleAdicional}` : ''}</td>
+                            <td className="center">{item.cantidad}</td>
+                            <td className="right">{item.precioUnitarioConIGV.toFixed(2)}</td>
+                            <td className="right">{item.total.toFixed(2)}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="5" className="center no-items">No hay productos agregados</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Totales del comprobante */}
+                <div className="comprobante-totales">
+                  <div className="total-line">
+                    <span>Op. Gravada:</span>
+                    <span>{formData.moneda === 'PEN' ? 'S/' : '$'} {formData.subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="total-line">
+                    <span>IGV (18%):</span>
+                    <span>{formData.moneda === 'PEN' ? 'S/' : '$'} {formData.igv.toFixed(2)}</span>
+                  </div>
+                  <div className="total-line total-final-comprobante">
+                    <span>TOTAL:</span>
+                    <span>{formData.moneda === 'PEN' ? 'S/' : '$'} {formData.total.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {/* Observaciones */}
+                {formData.observaciones && (
+                  <div className="comprobante-observaciones">
+                    <p><strong>Observaciones:</strong> {formData.observaciones}</p>
+                  </div>
+                )}
+
+                {/* Pie del comprobante */}
+                <div className="comprobante-footer">
+                  <p>Representación impresa de la {tipoDocumento === 'boleta' ? 'Boleta' : 'Factura'} Electrónica</p>
+                  <p>Consulte su comprobante en www.sunat.gob.pe</p>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn-modal-delete" onClick={() => setShowVistaPreviaModal(false)}>
+                Cerrar
+              </button>
+              <button type="button" className="btn-modal-accept" onClick={() => {
+                setShowVistaPreviaModal(false)
+                document.querySelector('form').requestSubmit()
+              }}>
+                Generar Comprobante
               </button>
             </div>
           </div>

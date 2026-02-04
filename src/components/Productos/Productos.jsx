@@ -1,14 +1,9 @@
 import { useState } from 'react'
 import './Productos.css'
+import dataJson from '../../data/data.json'
 
 function Productos() {
-  const datosIniciales = [
-    { id: 1, codigo: 'PROD001', nombre: 'Producto de ejemplo 1', precioCosto: 50.00, precioVenta: null, stock: 100, unidad: 'UNI' },
-    { id: 2, codigo: 'PROD002', nombre: 'Producto de ejemplo 2', precioCosto: 75.50, precioVenta: null, stock: 50, unidad: 'KG' },
-    { id: 3, codigo: 'PROD003', nombre: 'Producto de ejemplo 3', precioCosto: 120.00, precioVenta: null, stock: 30, unidad: 'UNI' },
-    { id: 4, codigo: 'SERV001', nombre: 'Servicio de consultoría', precioCosto: 200.00, precioVenta: null, stock: '-', unidad: '-' },
-    { id: 5, codigo: 'PROD004', nombre: 'Producto de ejemplo 4', precioCosto: 45.00, precioVenta: null, stock: 200, unidad: 'KG' },
-  ]
+  const datosIniciales = dataJson.productos
 
   const [productos, setProductos] = useState(datosIniciales)
   const [editandoId, setEditandoId] = useState(null)

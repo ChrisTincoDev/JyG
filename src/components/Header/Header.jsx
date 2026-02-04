@@ -48,7 +48,7 @@ function Header() {
                       className="dropdown-link"
                       onClick={() => setDropdownOpen(false)}
                     >
-                      Ver todos los puntos de venta
+                      Mostrar todas
                     </Link>
                   </li>
                   <li>

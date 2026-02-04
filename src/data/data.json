@@ -1,0 +1,37 @@
+{
+  "productos": [
+    { "id": 1, "codigo": "ABR001", "nombre": "Arroz Costeño 1kg", "precioCosto": 4.50, "precioVenta": null, "stock": 150, "unidad": "UNI", "categoria": "Granos" },
+    { "id": 2, "codigo": "ABR002", "nombre": "Azúcar Rubia 1kg", "precioCosto": 3.80, "precioVenta": null, "stock": 200, "unidad": "UNI", "categoria": "Granos" },
+    { "id": 3, "codigo": "ABR003", "nombre": "Aceite Vegetal Primor 1L", "precioCosto": 8.90, "precioVenta": null, "stock": 80, "unidad": "UNI", "categoria": "Aceites" },
+    { "id": 4, "codigo": "ABR004", "nombre": "Leche Gloria Evaporada 400g", "precioCosto": 4.20, "precioVenta": null, "stock": 120, "unidad": "UNI", "categoria": "Lácteos" },
+    { "id": 5, "codigo": "ABR005", "nombre": "Fideos Don Vittorio Spaghetti 500g", "precioCosto": 3.50, "precioVenta": null, "stock": 100, "unidad": "UNI", "categoria": "Pastas" },
+    { "id": 6, "codigo": "ABR006", "nombre": "Atún Florida en Aceite 170g", "precioCosto": 6.50, "precioVenta": null, "stock": 60, "unidad": "UNI", "categoria": "Conservas" },
+    { "id": 7, "codigo": "ABR007", "nombre": "Sal de Mesa Emsal 1kg", "precioCosto": 1.50, "precioVenta": null, "stock": 180, "unidad": "UNI", "categoria": "Condimentos" },
+    { "id": 8, "codigo": "ABR008", "nombre": "Café Nescafé Clásico 200g", "precioCosto": 18.90, "precioVenta": null, "stock": 45, "unidad": "UNI", "categoria": "Bebidas" },
+    { "id": 9, "codigo": "ABR009", "nombre": "Galletas Soda Field 6 pack", "precioCosto": 4.80, "precioVenta": null, "stock": 90, "unidad": "UNI", "categoria": "Snacks" },
+    { "id": 10, "codigo": "ABR010", "nombre": "Jabón Bolívar 230g", "precioCosto": 3.20, "precioVenta": null, "stock": 110, "unidad": "UNI", "categoria": "Limpieza" },
+    { "id": 11, "codigo": "ABR011", "nombre": "Papel Higiénico Elite 4 rollos", "precioCosto": 6.90, "precioVenta": null, "stock": 75, "unidad": "UNI", "categoria": "Limpieza" },
+    { "id": 12, "codigo": "ABR012", "nombre": "Detergente Ace 900g", "precioCosto": 12.50, "precioVenta": null, "stock": 55, "unidad": "UNI", "categoria": "Limpieza" },
+    { "id": 13, "codigo": "ABR013", "nombre": "Avena 3 Ositos 1kg", "precioCosto": 7.80, "precioVenta": null, "stock": 65, "unidad": "UNI", "categoria": "Cereales" },
+    { "id": 14, "codigo": "ABR014", "nombre": "Mayonesa Alacena 500g", "precioCosto": 9.90, "precioVenta": null, "stock": 40, "unidad": "UNI", "categoria": "Salsas" },
+    { "id": 15, "codigo": "ABR015", "nombre": "Gaseosa Inca Kola 2.25L", "precioCosto": 8.50, "precioVenta": null, "stock": 100, "unidad": "UNI", "categoria": "Bebidas" },
+    { "id": 16, "codigo": "ABR016", "nombre": "Lentejas 500g", "precioCosto": 5.20, "precioVenta": null, "stock": 70, "unidad": "KG", "categoria": "Granos" },
+    { "id": 17, "codigo": "ABR017", "nombre": "Frijoles Canario 500g", "precioCosto": 6.80, "precioVenta": null, "stock": 85, "unidad": "KG", "categoria": "Granos" },
+    { "id": 18, "codigo": "ABR018", "nombre": "Mantequilla Gloria 200g", "precioCosto": 7.50, "precioVenta": null, "stock": 50, "unidad": "UNI", "categoria": "Lácteos" },
+    { "id": 19, "codigo": "ABR019", "nombre": "Huevos de Gallina x 15", "precioCosto": 9.00, "precioVenta": null, "stock": 30, "unidad": "UNI", "categoria": "Lácteos" },
+    { "id": 20, "codigo": "ABR020", "nombre": "Agua San Luis 2.5L", "precioCosto": 3.50, "precioVenta": null, "stock": 140, "unidad": "UNI", "categoria": "Bebidas" }
+  ],
+  "clientes": [
+    { "id": 1, "tipoDoc": "dni", "numeroDoc": "12345678", "nombre": "Juan Pérez García", "direccion": "Av. Lima 123", "email": "juan@email.com" },
+    { "id": 2, "tipoDoc": "dni", "numeroDoc": "87654321", "nombre": "María López Ruiz", "direccion": "Jr. Cusco 456", "email": "maria@email.com" },
+    { "id": 3, "tipoDoc": "ruc", "numeroDoc": "20123456789", "nombre": "Empresa ABC S.A.C.", "direccion": "Av. Industrial 789", "email": "contacto@abc.com" }
+  ],
+  "emisor": {
+    "ruc": "20512345678",
+    "razonSocial": "Abarrotes JyG S.A.C.",
+    "nombreComercial": "JyG Abarrotes",
+    "direccion": "Av. Los Próceres 456, San Juan de Lurigancho, Lima",
+    "telefono": "(01) 555-1234",
+    "encargado": "José García Mendoza"
+  }
+}
