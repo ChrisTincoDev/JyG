@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import './NuevoPuntoVenta.css'
 import dataJson from '../../data/data.json'
 
@@ -15,7 +16,10 @@ const productosAbarrotes = dataJson.productos.map(p => ({
 }))
 
 function NuevoPuntoVenta() {
-  const [tipoDocumento, setTipoDocumento] = useState('boleta')
+  const navigate = useNavigate()
+  const location = useLocation()
+  // Determinar tipo desde la URL
+  const tipoDocumento = location.pathname.includes('/factura') ? 'factura' : 'boleta'
   const [conDNI, setConDNI] = useState(true)
   const [clienteSeleccionado, setClienteSeleccionado] = useState('')
   const [showNuevoClienteModal, setShowNuevoClienteModal] = useState(false)
@@ -40,14 +44,19 @@ function NuevoPuntoVenta() {
     email: ''
   })
   const [errorCliente, setErrorCliente] = useState('')
+  const [busquedaProducto, setBusquedaProducto] = useState('')
+  const [mostrarResultados, setMostrarResultados] = useState(false)
 
   // Datos de clientes desde JSON
   const [clientes, setClientes] = useState(dataJson.clientes)
 
-  // Obtener fecha actual formateada
+  // Obtener fecha actual formateada (zona horaria local)
   const obtenerFechaActual = () => {
     const hoy = new Date()
-    return hoy.toISOString().split('T')[0]
+    const año = hoy.getFullYear()
+    const mes = String(hoy.getMonth() + 1).padStart(2, '0')
+    const dia = String(hoy.getDate()).padStart(2, '0')
+    return `${año}-${mes}-${dia}`
   }
 
   const obtenerFechaFormateada = () => {
@@ -97,75 +106,132 @@ function NuevoPuntoVenta() {
     setClienteSeleccionado(e.target.value)
   }
 
-  const handleProductoSelect = (e) => {
-    const productoId = e.target.value
-    if (!productoId) return
+  // Filtrar productos por código o nombre
+  const productosFiltrados = busquedaProducto.trim()
+    ? productosAbarrotes.filter(p =>
+        p.codigo.toLowerCase().includes(busquedaProducto.toLowerCase()) ||
+        p.nombre.toLowerCase().includes(busquedaProducto.toLowerCase())
+      )
+    : []
 
-    const producto = productosAbarrotes.find(p => p.id === parseInt(productoId))
-    if (producto) {
-      const precioConIGV = producto.precioBase * 1.18
-      const subtotal = producto.precioBase
-      const igvLinea = subtotal * 0.18
-      
-      setItemModal({
-        productoId: producto.id,
-        codigo: producto.codigo,
-        nombre: producto.nombre,
-        detalleAdicional: '',
-        cantidad: 1,
-        precioUnitarioConIGV: parseFloat(precioConIGV.toFixed(2)),
-        subtotal: parseFloat(subtotal.toFixed(2)),
-        igvLinea: parseFloat(igvLinea.toFixed(2)),
-        total: parseFloat(precioConIGV.toFixed(2))
-      })
-      setShowProductoModal(true)
+  const handleBusquedaChange = (e) => {
+    setBusquedaProducto(e.target.value)
+    setMostrarResultados(true)
+  }
+
+  const handleProductoSelect = (producto) => {
+    const precioConIGV = producto.precioBase * 1.18
+    const subtotal = producto.precioBase
+    const igvLinea = subtotal * 0.18
+
+    setItemModal({
+      productoId: producto.id,
+      codigo: producto.codigo,
+      nombre: producto.nombre,
+      detalleAdicional: '',
+      cantidad: 1,
+      precioUnitarioConIGV: parseFloat(precioConIGV.toFixed(2)),
+      subtotal: parseFloat(subtotal.toFixed(2)),
+      igvLinea: parseFloat(igvLinea.toFixed(2)),
+      total: parseFloat(precioConIGV.toFixed(2))
+    })
+    setShowProductoModal(true)
+    setBusquedaProducto('')
+    setMostrarResultados(false)
+  }
+
+  // Validar input para solo permitir números y punto decimal
+  const handleInputNumerico = (e, field) => {
+    let value = e.target.value
+    // Eliminar cualquier caracter que no sea número o punto
+    value = value.replace(/[^0-9.]/g, '')
+    // No permitir que empiece con punto
+    if (value.startsWith('.')) {
+      value = value.substring(1)
     }
-    // Reset select
-    e.target.value = ''
+    // Solo permitir un punto decimal
+    const puntos = value.split('.').length - 1
+    if (puntos > 1) {
+      value = value.substring(0, value.lastIndexOf('.'))
+    }
+    handleItemModalChange(field, value)
+  }
+
+  // Función auxiliar para recalcular subtotal, IGV y total
+  const recalcularTotalesLinea = (precioConIGV, cantidad) => {
+    const cantidadNum = parseFloat(cantidad) || 0
+    const precioNum = parseFloat(precioConIGV) || 0
+    // Precio con IGV = Subtotal + IGV = X + 0.18X = 1.18X
+    // Por lo tanto: X (subtotal unitario) = Precio con IGV / 1.18
+    const subtotalUnitario = precioNum / 1.18
+    const subtotalTotal = subtotalUnitario * cantidadNum
+    const igvLinea = subtotalTotal * 0.18
+    const total = cantidadNum * precioNum
+
+    return {
+      subtotal: parseFloat(subtotalTotal.toFixed(2)),
+      igvLinea: parseFloat(igvLinea.toFixed(2)),
+      total: parseFloat(total.toFixed(2))
+    }
   }
 
   const handleItemModalChange = (field, value) => {
     setItemModal(prev => {
       const newItem = { ...prev }
-      
+
       if (field === 'precioUnitarioConIGV') {
-        const precioConIGV = parseFloat(value) || 0
-        // Precio con IGV = Subtotal + IGV = X + 0.18X = 1.18X
-        // Por lo tanto: X (subtotal) = Precio con IGV / 1.18
-        const subtotal = precioConIGV / 1.18
-        const igvLinea = subtotal * 0.18
-        
-        newItem.precioUnitarioConIGV = precioConIGV
-        newItem.subtotal = parseFloat(subtotal.toFixed(2))
-        newItem.igvLinea = parseFloat(igvLinea.toFixed(2))
-        newItem.total = parseFloat((newItem.cantidad * precioConIGV).toFixed(2))
+        // Guardar el valor como string para permitir escribir libremente
+        newItem.precioUnitarioConIGV = value
+        const totales = recalcularTotalesLinea(value, newItem.cantidad)
+        newItem.subtotal = totales.subtotal
+        newItem.igvLinea = totales.igvLinea
+        newItem.total = totales.total
       } else if (field === 'cantidad') {
-        const cantidad = parseFloat(value) || 1
-        newItem.cantidad = cantidad
-        newItem.total = parseFloat((cantidad * newItem.precioUnitarioConIGV).toFixed(2))
+        // Guardar el valor como string para permitir escribir libremente
+        newItem.cantidad = value
+        const totales = recalcularTotalesLinea(newItem.precioUnitarioConIGV, value)
+        newItem.subtotal = totales.subtotal
+        newItem.igvLinea = totales.igvLinea
+        newItem.total = totales.total
       } else {
         newItem[field] = value
       }
-      
+
       return newItem
     })
   }
 
   const handleAceptarItem = () => {
+    const cantidadNum = parseFloat(itemModal.cantidad) || 0
+    const precioNum = parseFloat(itemModal.precioUnitarioConIGV) || 0
+
+    // Validar cantidad mínima
+    if (cantidadNum < 1) {
+      alert('La cantidad debe ser al menos 1')
+      return
+    }
+    // Validar precio unitario
+    if (precioNum <= 0) {
+      alert('El precio unitario debe ser mayor a 0')
+      return
+    }
+
     const newItem = {
       ...itemModal,
+      cantidad: cantidadNum,
+      precioUnitarioConIGV: precioNum,
       id: Date.now() // ID único para el item
     }
-    
+
     const newItems = [...formData.items, newItem]
     const totales = calcularTotales(newItems)
-    
+
     setFormData(prev => ({
       ...prev,
       items: newItems,
       ...totales
     }))
-    
+
     setShowProductoModal(false)
   }
 
@@ -174,8 +240,9 @@ function NuevoPuntoVenta() {
   }
 
   const calcularTotales = (items) => {
-    const subtotal = items.reduce((acc, item) => acc + (item.subtotal * item.cantidad), 0)
-    const igv = items.reduce((acc, item) => acc + (item.igvLinea * item.cantidad), 0)
+    // subtotal e igvLinea ya incluyen la cantidad de cada línea
+    const subtotal = items.reduce((acc, item) => acc + item.subtotal, 0)
+    const igv = items.reduce((acc, item) => acc + item.igvLinea, 0)
     const total = subtotal + igv
     
     return {
@@ -265,16 +332,44 @@ function NuevoPuntoVenta() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
+
+    // Validar que haya al menos un producto
+    if (formData.items.length === 0) {
+      alert('Debe agregar al menos un producto')
+      return
+    }
+
+    // Para facturas es obligatorio tener cliente con DNI/RUC
+    if (tipoDocumento === 'factura' && !clienteSeleccionado) {
+      alert('Para generar una factura es obligatorio seleccionar un cliente con DNI/RUC')
+      return
+    }
+
     const clienteData = conDNI ? clientes.find(c => c.id === parseInt(clienteSeleccionado)) : null
-    console.log('Documento a generar:', { 
-      tipoDocumento, 
-      conDNI, 
-      cliente: clienteData, 
+
+    // Datos del comprobante generado
+    const comprobanteData = {
+      id: Date.now(),
+      tipoDocumento,
       serie: obtenerSerie(),
+      correlativo: formData.correlativo,
       fechaEmision: obtenerFechaActual(),
-      ...formData 
-    })
-    alert(`${tipoDocumento === 'boleta' ? 'Boleta' : 'Factura'} electrónica generada exitosamente!`)
+      moneda: formData.moneda,
+      cliente: clienteData,
+      items: formData.items,
+      subtotal: formData.subtotal,
+      igv: formData.igv,
+      total: formData.total,
+      observaciones: formData.observaciones
+    }
+
+    // Guardar en localStorage
+    const comprobantesGuardados = JSON.parse(localStorage.getItem('comprobantes') || '[]')
+    comprobantesGuardados.unshift(comprobanteData) // Agregar al inicio
+    localStorage.setItem('comprobantes', JSON.stringify(comprobantesGuardados))
+
+    // Navegar a la página de comprobante generado
+    navigate('/comprobante-generado', { state: { comprobante: comprobanteData } })
   }
 
   const handleVistaPrevia = () => {
@@ -293,18 +388,18 @@ function NuevoPuntoVenta() {
 
         {/* Selector de tipo de documento */}
         <div className="tipo-documento-selector">
-          <button 
+          <button
             type="button"
             className={`tipo-btn ${tipoDocumento === 'boleta' ? 'active' : ''}`}
-            onClick={() => setTipoDocumento('boleta')}
+            onClick={() => navigate('/nuevo-punto-venta/boleta')}
           >
             <span className="tipo-icon">📋</span>
             Boleta Electrónica
           </button>
-          <button 
+          <button
             type="button"
             className={`tipo-btn ${tipoDocumento === 'factura' ? 'active' : ''}`}
-            onClick={() => setTipoDocumento('factura')}
+            onClick={() => navigate('/nuevo-punto-venta/factura')}
           >
             <span className="tipo-icon">📄</span>
             Factura Electrónica
@@ -319,31 +414,36 @@ function NuevoPuntoVenta() {
               Datos del Cliente
             </h2>
             
-            {/* Checkbox Con DNI / Sin DNI */}
+            {/* Checkbox Con DNI / Sin DNI - Para facturas siempre es obligatorio */}
             <div className="dni-checkbox-container">
               <label className="checkbox-label">
-                <input 
-                  type="checkbox" 
-                  checked={conDNI} 
+                <input
+                  type="checkbox"
+                  checked={tipoDocumento === 'factura' ? true : conDNI}
                   onChange={handleConDNIChange}
+                  disabled={tipoDocumento === 'factura'}
                 />
                 <span className="checkbox-custom"></span>
-                Con DNI
+                Con DNI/RUC
               </label>
               <span className="dni-status">
-                {conDNI ? '(Se requiere seleccionar cliente)' : '(Venta sin identificación de cliente)'}
+                {tipoDocumento === 'factura'
+                  ? '(Obligatorio para facturas)'
+                  : conDNI
+                    ? '(Se requiere seleccionar cliente)'
+                    : '(Venta sin identificacion de cliente)'}
               </span>
             </div>
 
             {/* Dropdown de clientes */}
             <div className="cliente-selector-container">
               <div className="form-group cliente-dropdown">
-                <label>Seleccionar Cliente</label>
-                <select 
+                <label>Seleccionar Cliente {tipoDocumento === 'factura' && <span style={{color: '#dc2626'}}>*</span>}</label>
+                <select
                   value={clienteSeleccionado}
                   onChange={handleClienteChange}
-                  disabled={!conDNI}
-                  required={conDNI}
+                  disabled={tipoDocumento === 'factura' ? false : !conDNI}
+                  required={tipoDocumento === 'factura' || conDNI}
                 >
                   <option value="">-- Seleccione un cliente --</option>
                   {clientes.map(cliente => (
@@ -353,9 +453,9 @@ function NuevoPuntoVenta() {
                   ))}
                 </select>
               </div>
-              {conDNI && (
-                <button 
-                  type="button" 
+              {(tipoDocumento === 'factura' || conDNI) && (
+                <button
+                  type="button"
                   className="btn-nuevo-cliente"
                   onClick={() => setShowNuevoClienteModal(true)}
                 >
@@ -365,7 +465,7 @@ function NuevoPuntoVenta() {
             </div>
 
             {/* Mostrar datos del cliente seleccionado */}
-            {conDNI && clienteActual && (
+            {(tipoDocumento === 'factura' || conDNI) && clienteActual && (
               <div className="cliente-info">
                 <div className="cliente-info-row">
                   <span className="label">Documento:</span>
@@ -441,20 +541,44 @@ function NuevoPuntoVenta() {
           <section className="form-section">
             <h2 className="section-title">
               <span className="section-icon">📦</span>
-              Productos / Servicios
+              Productos
             </h2>
             
-            {/* Dropdown para seleccionar producto */}
+            {/* Buscador de productos */}
             <div className="form-group producto-selector">
-              <label>Agregar Producto</label>
-              <select onChange={handleProductoSelect} defaultValue="">
-                <option value="">-- Seleccione un producto --</option>
-                {productosAbarrotes.map(producto => (
-                  <option key={producto.id} value={producto.id}>
-                    {producto.codigo} - {producto.nombre} (S/ {producto.precioBase.toFixed(2)})
-                  </option>
-                ))}
-              </select>
+              <label>Buscar Producto</label>
+              <div className="busqueda-container">
+                <input
+                  type="text"
+                  value={busquedaProducto}
+                  onChange={handleBusquedaChange}
+                  onFocus={() => setMostrarResultados(true)}
+                  onBlur={() => setTimeout(() => setMostrarResultados(false), 200)}
+                  placeholder="Buscar por código o nombre..."
+                  className="busqueda-input"
+                />
+                {mostrarResultados && busquedaProducto.trim() && (
+                  <div className="busqueda-resultados">
+                    {productosFiltrados.length > 0 ? (
+                      productosFiltrados.map(producto => (
+                        <div
+                          key={producto.id}
+                          className="busqueda-item"
+                          onClick={() => handleProductoSelect(producto)}
+                        >
+                          <span className="busqueda-codigo">{producto.codigo}</span>
+                          <span className="busqueda-nombre">{producto.nombre}</span>
+                          <span className="busqueda-precio">S/ {producto.precioBase.toFixed(2)}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="busqueda-sin-resultados">
+                        No se encontraron productos
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Tabla de items agregados */}
@@ -583,22 +707,20 @@ function NuevoPuntoVenta() {
               <div className="form-row">
                 <div className="form-group">
                   <label>Cantidad</label>
-                  <input 
-                    type="number"
+                  <input
+                    type="text"
+                    inputMode="decimal"
                     value={itemModal.cantidad}
-                    onChange={(e) => handleItemModalChange('cantidad', e.target.value)}
-                    min="1"
-                    step="1"
+                    onChange={(e) => handleInputNumerico(e, 'cantidad')}
                   />
                 </div>
                 <div className="form-group">
                   <label>Precio Unitario (Con IGV)</label>
-                  <input 
-                    type="number"
+                  <input
+                    type="text"
+                    inputMode="decimal"
                     value={itemModal.precioUnitarioConIGV}
-                    onChange={(e) => handleItemModalChange('precioUnitarioConIGV', e.target.value)}
-                    min="0"
-                    step="0.01"
+                    onChange={(e) => handleInputNumerico(e, 'precioUnitarioConIGV')}
                   />
                 </div>
               </div>
@@ -848,14 +970,8 @@ function NuevoPuntoVenta() {
               </div>
             </div>
             <div className="modal-footer">
-              <button type="button" className="btn-modal-delete" onClick={() => setShowVistaPreviaModal(false)}>
+              <button type="button" className="btn-modal-accept" onClick={() => setShowVistaPreviaModal(false)}>
                 Cerrar
-              </button>
-              <button type="button" className="btn-modal-accept" onClick={() => {
-                setShowVistaPreviaModal(false)
-                document.querySelector('form').requestSubmit()
-              }}>
-                Generar Comprobante
               </button>
             </div>
           </div>

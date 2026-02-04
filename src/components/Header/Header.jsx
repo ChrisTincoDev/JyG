@@ -53,11 +53,20 @@ function Header() {
                   </li>
                   <li>
                     <Link
-                      to="/nuevo-punto-venta"
+                      to="/nuevo-punto-venta/boleta"
                       className="dropdown-link"
                       onClick={() => setDropdownOpen(false)}
                     >
-                      Nuevo punto de venta
+                      Nueva Boleta
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      to="/nuevo-punto-venta/factura"
+                      className="dropdown-link"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      Nueva Factura
                     </Link>
                   </li>
                 </ul>
