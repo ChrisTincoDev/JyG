@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal
 from pathlib import Path
 from django.core.management.base import BaseCommand
 from productos.models import Categoria, Producto
@@ -27,8 +28,8 @@ class Command(BaseCommand):
                 codigo=p['codigo'],
                 defaults={
                     'nombre': p['nombre'],
-                    'precio_costo': p['precioCosto'],
-                    'precio_venta': p.get('precioVenta'),
+                    'precio_costo': Decimal(str(p['precioCosto'])),
+                    'precio_venta': Decimal(str(p['precioVenta'])) if p.get('precioVenta') else None,
                     'stock': p['stock'],
                     'unidad_medida': p['unidad'],
                     'categoria': cat,
