@@ -49,3 +49,34 @@ export const getSiguienteCorrelativo = (tipo) =>
 
 // Empresa
 export const getEmpresa = () => request('/empresa/')
+
+// Consulta DNI / RUC (ApiPeru.dev)
+const APIPERU_TOKEN = '480d7e4939b8a0ceb33ddb8dee2ee34682e02b41d624b7e49f0984f63275d12c'
+
+export const consultarDNI = async (dni) => {
+  const res = await fetch('https://apiperu.dev/api/dni', {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${APIPERU_TOKEN}`
+    },
+    body: JSON.stringify({ dni })
+  })
+  if (!res.ok) throw new Error('Error al consultar DNI')
+  return res.json()
+}
+
+export const consultarRUC = async (ruc) => {
+  const res = await fetch('https://apiperu.dev/api/ruc', {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${APIPERU_TOKEN}`
+    },
+    body: JSON.stringify({ ruc })
+  })
+  if (!res.ok) throw new Error('Error al consultar RUC')
+  return res.json()
+}

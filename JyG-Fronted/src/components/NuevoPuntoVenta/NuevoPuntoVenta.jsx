@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import './NuevoPuntoVenta.css'
-import { getProductos, getClientes, createCliente, createComprobante, getEmpresa, getSiguienteCorrelativo } from '../../api'
+import { getProductos, getClientes, createCliente, createComprobante, getEmpresa, getSiguienteCorrelativo, consultarDNI, consultarRUC } from '../../api'
 
 function NuevoPuntoVenta() {
   const navigate = useNavigate()
@@ -31,6 +31,7 @@ function NuevoPuntoVenta() {
     email: ''
   })
   const [errorCliente, setErrorCliente] = useState('')
+  const [buscandoDoc, setBuscandoDoc] = useState(false)
   const [busquedaProducto, setBusquedaProducto] = useState('')
   const [mostrarResultados, setMostrarResultados] = useState(false)
 
@@ -274,6 +275,52 @@ function NuevoPuntoVenta() {
     setErrorCliente('')
   }
 
+  const handleBuscarDocumento = async () => {
+    const { tipoDoc, numeroDoc } = nuevoCliente
+    if (tipoDoc === 'dni' && numeroDoc.length !== 8) {
+      setErrorCliente('El DNI debe tener 8 dígitos')
+      return
+    }
+    if (tipoDoc === 'ruc' && numeroDoc.length !== 11) {
+      setErrorCliente('El RUC debe tener 11 dígitos')
+      return
+    }
+
+    setBuscandoDoc(true)
+    setErrorCliente('')
+
+    try {
+      if (tipoDoc === 'dni') {
+        const res = await consultarDNI(numeroDoc)
+        if (res.success && res.data) {
+          setNuevoCliente(prev => ({
+            ...prev,
+            nombre: res.data.nombre_completo || ''
+          }))
+        } else {
+          setErrorCliente('No se encontraron datos para este DNI')
+        }
+      } else if (tipoDoc === 'ruc') {
+        const res = await consultarRUC(numeroDoc)
+        if (res.success && res.data) {
+          setNuevoCliente(prev => ({
+            ...prev,
+            nombre: res.data.nombre_o_razon_social || '',
+            direccion: res.data.direccion_completa || res.data.direccion || ''
+          }))
+        } else {
+          setErrorCliente('No se encontraron datos para este RUC')
+        }
+      } else {
+        setErrorCliente('La búsqueda solo está disponible para DNI y RUC')
+      }
+    } catch (err) {
+      setErrorCliente('Error al consultar documento: ' + err.message)
+    } finally {
+      setBuscandoDoc(false)
+    }
+  }
+
   const validarNuevoCliente = () => {
     const { numeroDoc, nombre, direccion, email, tipoDoc } = nuevoCliente
 
@@ -281,11 +328,10 @@ function NuevoPuntoVenta() {
     if (tipoDoc === 'dni' && numeroDoc.length !== 8) return 'El DNI debe tener 8 dígitos'
     if (tipoDoc === 'ruc' && numeroDoc.length !== 11) return 'El RUC debe tener 11 dígitos'
     if (!nombre.trim()) return 'El nombre es obligatorio'
-    if (!direccion.trim()) return 'La dirección es obligatoria'
-    if (!email.trim()) return 'El email es obligatorio'
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) return 'El formato del email no es válido'
+    if (email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(email)) return 'El formato del email no es válido'
+    }
 
     return null
   }
@@ -687,8 +733,8 @@ function NuevoPuntoVenta() {
 
       {/* Modal de Producto */}
       {showProductoModal && (
-        <div className="modal-overlay" onClick={handleEliminarItemModal}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay">
+          <div className="modal-content">
             <div className="modal-header">
               <h2>Agregar Producto</h2>
               <button className="modal-close" onClick={handleEliminarItemModal}>✕</button>
@@ -770,11 +816,15 @@ function NuevoPuntoVenta() {
 
       {/* Modal de Nuevo Cliente */}
       {showNuevoClienteModal && (
-        <div className="modal-overlay" onClick={() => setShowNuevoClienteModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay">
+          <div className="modal-content">
             <div className="modal-header">
               <h2>Nuevo Cliente</h2>
-              <button className="modal-close" onClick={() => setShowNuevoClienteModal(false)}>✕</button>
+              <button className="modal-close" onClick={() => {
+                setShowNuevoClienteModal(false)
+                setErrorCliente('')
+                setNuevoCliente({ tipoDoc: 'dni', numeroDoc: '', nombre: '', direccion: '', email: '' })
+              }}>✕</button>
             </div>
             <div className="modal-body">
               <div className="form-row">
@@ -803,6 +853,19 @@ function NuevoPuntoVenta() {
                   />
                 </div>
               </div>
+
+              {(nuevoCliente.tipoDoc === 'dni' || nuevoCliente.tipoDoc === 'ruc') && (
+                <div className="doc-busqueda-action">
+                  <button
+                    type="button"
+                    className="btn-buscar-doc"
+                    onClick={handleBuscarDocumento}
+                    disabled={buscandoDoc || !nuevoCliente.numeroDoc.trim()}
+                  >
+                    {buscandoDoc ? 'Buscando...' : `Buscar por ${nuevoCliente.tipoDoc.toUpperCase()}`}
+                  </button>
+                </div>
+              )}
 
               <div className="form-group">
                 <label>{nuevoCliente.tipoDoc === 'ruc' ? 'Razón Social' : 'Nombre Completo'}</label>
@@ -848,6 +911,7 @@ function NuevoPuntoVenta() {
               <button type="button" className="btn-modal-delete" onClick={() => {
                 setShowNuevoClienteModal(false)
                 setErrorCliente('')
+                setNuevoCliente({ tipoDoc: 'dni', numeroDoc: '', nombre: '', direccion: '', email: '' })
               }}>
                 Cancelar
               </button>
@@ -861,8 +925,8 @@ function NuevoPuntoVenta() {
 
       {/* Modal de Vista Previa */}
       {showVistaPreviaModal && datosEmisor && (
-        <div className="modal-overlay" onClick={() => setShowVistaPreviaModal(false)}>
-          <div className="modal-content modal-vista-previa" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay">
+          <div className="modal-content modal-vista-previa">
             <div className="modal-header">
               <h2>Vista Previa del Comprobante</h2>
               <button className="modal-close" onClick={() => setShowVistaPreviaModal(false)}>✕</button>

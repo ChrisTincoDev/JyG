@@ -198,6 +198,34 @@
   font-style: italic;
 }
 
+/* Buscar Documento */
+.doc-busqueda-action {
+  margin-bottom: 1rem;
+}
+
+.btn-buscar-doc {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-buscar-doc:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+.btn-buscar-doc:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Cliente Selector */
 .cliente-selector-container {
   display: flex;

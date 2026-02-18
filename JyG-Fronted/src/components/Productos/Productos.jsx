@@ -77,6 +77,7 @@ function Productos() {
   }
 
   const handlePrecioCostoChange = (valor) => {
+    if (valor.includes('-')) return
     setEditandoData(prev => ({
       ...prev,
       precio_costo: valor,
@@ -85,10 +86,16 @@ function Productos() {
   }
 
   const handlePrecioVentaChange = (valor) => {
+    if (valor.includes('-')) return
     setEditandoData(prev => ({ ...prev, precio_venta: valor }))
   }
 
+  const bloquearNegativo = (e) => {
+    if (e.key === '-' || e.key === 'e') e.preventDefault()
+  }
+
   const handleNuevoChange = (campo, valor) => {
+
     if (campo === 'precioCosto') {
       setNuevoProducto(prev => ({ ...prev, precioCosto: valor, precioVenta: '' }))
     } else {
@@ -192,7 +199,9 @@ function Productos() {
                           <input
                             type="number"
                             step="0.01"
+                            min="0"
                             value={editandoData.precio_costo}
+                            onKeyDown={bloquearNegativo}
                             onChange={(e) => handlePrecioCostoChange(e.target.value)}
                           />
                         </div>
@@ -207,7 +216,9 @@ function Productos() {
                           <input
                             type="number"
                             step="0.01"
+                            min="0"
                             value={editandoData.precio_venta}
+                            onKeyDown={bloquearNegativo}
                             onChange={(e) => handlePrecioVentaChange(e.target.value)}
                           />
                         </div>
@@ -246,8 +257,8 @@ function Productos() {
         </div>
 
         {modalAbierto && (
-          <div className="modal-overlay" onClick={() => setModalAbierto(false)}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-overlay">
+            <div className="modal">
               <div className="modal-header">
                 <h2>Nuevo Producto</h2>
                 <button className="modal-cerrar" onClick={() => setModalAbierto(false)}>×</button>
@@ -291,8 +302,10 @@ function Productos() {
                       <input
                         type="number"
                         step="0.01"
+                        min="0"
                         placeholder="0.00"
                         value={nuevoProducto.precioCosto}
+                        onKeyDown={bloquearNegativo}
                         onChange={(e) => handleNuevoChange('precioCosto', e.target.value)}
                       />
                     </div>
@@ -304,8 +317,10 @@ function Productos() {
                       <input
                         type="number"
                         step="0.01"
+                        min="0"
                         placeholder={nuevoProducto.precioCosto !== '' ? calcularPrecioVenta(+nuevoProducto.precioCosto).toFixed(2) : '0.00'}
                         value={nuevoProducto.precioVenta}
+                        onKeyDown={bloquearNegativo}
                         onChange={(e) => handleNuevoChange('precioVenta', e.target.value)}
                       />
                     </div>
@@ -316,8 +331,10 @@ function Productos() {
                     <label>Stock</label>
                     <input
                       type="number"
+                      min="0"
                       placeholder="0"
                       value={nuevoProducto.stock}
+                      onKeyDown={bloquearNegativo}
                       onChange={(e) => handleNuevoChange('stock', e.target.value)}
                     />
                   </div>
@@ -342,8 +359,8 @@ function Productos() {
         )}
 
         {productoAEliminar && (
-          <div className="modal-overlay" onClick={() => setProductoAEliminar(null)}>
-            <div className="modal modal-eliminar" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-overlay">
+            <div className="modal modal-eliminar">
               <div className="modal-header">
                 <h2>Confirmar Eliminación</h2>
                 <button className="modal-cerrar" onClick={() => setProductoAEliminar(null)}>×</button>
