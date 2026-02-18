@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink, Link } from 'react-router-dom'
 import './Header.css'
 
-function Header() {
+function Header({ usuario, onLogout }) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
 
   return (
@@ -74,6 +74,14 @@ function Header() {
             </li>
           </ul>
         </nav>
+
+        {/* Usuario y Logout */}
+        <div className="user-section">
+          <span className="user-name">{usuario?.nombre || usuario?.username}</span>
+          <button className="btn-logout" onClick={onLogout}>
+            Cerrar Sesión
+          </button>
+        </div>
       </div>
     </header>
   )

@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'clientes',
     'comprobantes',
     'empresa',
+    'usuarios',
 ]
 
 MIDDLEWARE = [
@@ -138,4 +139,40 @@ CORS_ALLOWED_ORIGINS = [
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 50,
+}
+
+# Filtro para ocultar logs de /ws/ai-assistant
+import logging
+
+class IgnoreWSAssistantFilter(logging.Filter):
+    def filter(self, record):
+        message = record.getMessage()
+        return '/ws/ai-assistant' not in message
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'filters': {
+        'ignore_ws_assistant': {
+            '()': 'config.settings.IgnoreWSAssistantFilter',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'filters': ['ignore_ws_assistant'],
+        },
+    },
+    'loggers': {
+        'django.server': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
 }

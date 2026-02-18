@@ -7,11 +7,15 @@ async function request(endpoint, options = {}) {
   })
   if (!res.ok) {
     const error = await res.json().catch(() => ({}))
-    throw new Error(error.detail || JSON.stringify(error) || res.statusText)
+    throw new Error(error.error || error.detail || JSON.stringify(error) || res.statusText)
   }
   if (res.status === 204) return null
   return res.json()
 }
+
+// Autenticación
+export const login = (username, password) =>
+  request('/login/', { method: 'POST', body: JSON.stringify({ username, password }) })
 
 // Productos
 export const getProductos = (search = '') =>
