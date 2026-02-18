@@ -1,4 +1,5 @@
-from rest_framework import viewsets
+from django.utils import timezone
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import Comprobante
@@ -36,3 +37,23 @@ class ComprobanteViewSet(viewsets.ModelViewSet):
         else:
             siguiente = '00000001'
         return Response({'serie': serie, 'correlativo': siguiente})
+
+    @action(detail=True, methods=['post'])
+    def anular(self, request, pk=None):
+        comprobante = self.get_object()
+        if comprobante.estado == 'anulado':
+            return Response(
+                {'detail': 'Este comprobante ya fue anulado.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        motivo = request.data.get('motivo', '')
+        if not motivo.strip():
+            return Response(
+                {'detail': 'Debe indicar un motivo de anulación.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        comprobante.estado = 'anulado'
+        comprobante.motivo_anulacion = motivo
+        comprobante.fecha_anulacion = timezone.now()
+        comprobante.save()
+        return Response({'detail': 'Comprobante anulado correctamente.', 'id': comprobante.id})

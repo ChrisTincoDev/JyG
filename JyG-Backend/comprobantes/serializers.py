@@ -28,11 +28,12 @@ class ComprobanteSerializer(serializers.ModelSerializer):
             'id', 'cliente', 'cliente_detalle',
             'tipo_comprobante', 'serie', 'correlativo',
             'fecha_emision', 'gravada', 'igv', 'total', 'moneda',
-            'observaciones', 'sunat_enviada', 'sunat_aceptada',
+            'observaciones', 'estado', 'motivo_anulacion', 'fecha_anulacion',
+            'sunat_enviada', 'sunat_aceptada',
             'codigo_respuesta', 'descripcion_respuesta',
             'items', 'created_at',
         ]
-        read_only_fields = ['gravada', 'igv', 'total', 'created_at']
+        read_only_fields = ['gravada', 'igv', 'total', 'estado', 'motivo_anulacion', 'fecha_anulacion', 'created_at']
 
     def create(self, validated_data):
         items_data = validated_data.pop('items')
@@ -61,6 +62,6 @@ class ComprobanteListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'tipo_comprobante', 'serie', 'correlativo',
             'fecha_emision', 'gravada', 'igv', 'total', 'moneda',
-            'cliente_nombre', 'items_count',
+            'cliente_nombre', 'items_count', 'estado',
             'sunat_enviada', 'sunat_aceptada', 'created_at',
         ]

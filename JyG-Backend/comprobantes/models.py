@@ -13,6 +13,10 @@ class Comprobante(models.Model):
         ('PEN', 'Soles'),
         ('USD', 'Dólares'),
     ]
+    ESTADO_CHOICES = [
+        ('vigente', 'Vigente'),
+        ('anulado', 'Anulado'),
+    ]
 
     cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, null=True, blank=True, related_name='comprobantes')
     tipo_comprobante = models.CharField(max_length=20, choices=TIPO_CHOICES)
@@ -24,6 +28,9 @@ class Comprobante(models.Model):
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     moneda = models.CharField(max_length=5, choices=MONEDA_CHOICES, default='PEN')
     observaciones = models.TextField(blank=True, default='')
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='vigente')
+    motivo_anulacion = models.TextField(blank=True, default='')
+    fecha_anulacion = models.DateTimeField(null=True, blank=True)
 
     # SUNAT
     sunat_enviada = models.BooleanField(default=False)

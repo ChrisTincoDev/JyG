@@ -1,13 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import './ComprobanteGenerado.css'
-import { getEmpresa } from '../../api'
+import { getEmpresa, anularComprobante } from '../../api'
 
 function ComprobanteGenerado() {
   const location = useLocation()
   const navigate = useNavigate()
   const comprobante = location.state?.comprobante
   const [datosEmisor, setDatosEmisor] = useState(null)
+  const [showAnularModal, setShowAnularModal] = useState(false)
+  const [motivoAnulacion, setMotivoAnulacion] = useState('')
+  const [anulando, setAnulando] = useState(false)
+  const [anulado, setAnulado] = useState(false)
+  const [errorAnular, setErrorAnular] = useState('')
 
   useEffect(() => {
     const cargar = async () => {
@@ -83,6 +88,25 @@ function ComprobanteGenerado() {
     window.print()
   }
 
+  const handleAnular = async () => {
+    if (!motivoAnulacion.trim()) {
+      setErrorAnular('Debe indicar un motivo de anulación')
+      return
+    }
+    setAnulando(true)
+    setErrorAnular('')
+    try {
+      await anularComprobante(comprobante.id, motivoAnulacion)
+      setAnulado(true)
+      setShowAnularModal(false)
+      setMotivoAnulacion('')
+    } catch (err) {
+      setErrorAnular('Error al anular: ' + err.message)
+    } finally {
+      setAnulando(false)
+    }
+  }
+
   return (
     <div className="comprobante-generado">
       <div className="comprobante-container">
@@ -98,25 +122,10 @@ function ComprobanteGenerado() {
           <button className="btn-accion btn-imprimir" onClick={handleImprimir}>
             Imprimir
           </button>
-          <button className="btn-accion btn-pdf">
-            Ver PDF
-          </button>
-          <button className="btn-accion btn-xml">
-            Descargar XML
-          </button>
-          <button className="btn-accion btn-cdr">
-            Descargar CDR
-          </button>
         </div>
 
         {/* Opciones adicionales */}
         <div className="opciones-adicionales">
-          <button className="btn-opcion">
-            Enviar por WhatsApp
-          </button>
-          <button className="btn-opcion">
-            Enviar a un email personalizado
-          </button>
           <button className="btn-opcion" onClick={() => handleGenerarOtro('factura')}>
             Generar otra FACTURA
           </button>
@@ -129,37 +138,18 @@ function ComprobanteGenerado() {
         </div>
 
         {/* Botón anular */}
-        <div className="seccion-anular">
-          <button className="btn-anular">
-            ANULAR o comunicar de baja
-          </button>
-        </div>
+        {!anulado ? (
+          <div className="seccion-anular">
+            <button className="btn-anular" onClick={() => setShowAnularModal(true)}>
+              ANULAR o comunicar de baja
+            </button>
+          </div>
+        ) : (
+          <div className="seccion-anulado">
+            <p>COMPROBANTE ANULADO</p>
+          </div>
+        )}
 
-        {/* Estado SUNAT */}
-        <div className="estado-sunat">
-          <div className="estado-row">
-            <span className="estado-label">Enviada a la Sunat?:</span>
-            <span className="estado-icon check">&#10004;</span>
-          </div>
-          <div className="estado-row">
-            <span className="estado-label">Aceptada por la Sunat?:</span>
-            <span className="estado-icon check">&#10004;</span>
-          </div>
-          <div className="estado-row">
-            <span className="estado-label">Codigo:</span>
-            <span className="estado-value">0</span>
-          </div>
-          <div className="estado-row descripcion">
-            <span className="estado-label">Descripcion:</span>
-            <span className="estado-value">
-              La {tipoDocumento === 'boleta' ? 'Boleta' : 'Factura'} numero {numeroCompleto}, ha sido aceptada
-            </span>
-          </div>
-          <div className="estado-row">
-            <span className="estado-label">Otros:</span>
-            <span className="estado-value"></span>
-          </div>
-        </div>
 
       </div>
 
@@ -269,6 +259,58 @@ function ComprobanteGenerado() {
           </div>
         </div>
       </div>}
+
+      {/* Modal de Anulación */}
+      {showAnularModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header modal-header-anular">
+              <h2>Anular Comprobante</h2>
+              <button className="modal-close" onClick={() => {
+                setShowAnularModal(false)
+                setMotivoAnulacion('')
+                setErrorAnular('')
+              }}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="anular-info">
+                <p><strong>Comprobante:</strong> {numeroCompleto}</p>
+                <p><strong>Total:</strong> {simboloMoneda}{total.toFixed(2)}</p>
+              </div>
+              <div className="anular-advertencia">
+                Esta acción no se puede deshacer. El comprobante será comunicado de baja ante SUNAT.
+              </div>
+              <div className="form-group-anular">
+                <label>Motivo de anulación <span style={{color: '#dc2626'}}>*</span></label>
+                <textarea
+                  value={motivoAnulacion}
+                  onChange={(e) => {
+                    setMotivoAnulacion(e.target.value)
+                    setErrorAnular('')
+                  }}
+                  placeholder="Indique el motivo de la anulación..."
+                  rows="3"
+                />
+              </div>
+              {errorAnular && (
+                <div className="error-mensaje-anular">{errorAnular}</div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn-modal-delete" onClick={() => {
+                setShowAnularModal(false)
+                setMotivoAnulacion('')
+                setErrorAnular('')
+              }}>
+                Cancelar
+              </button>
+              <button className="btn-confirmar-anular" onClick={handleAnular} disabled={anulando}>
+                {anulando ? 'Anulando...' : 'Confirmar Anulación'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

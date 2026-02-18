@@ -47,6 +47,9 @@ export const createComprobante = (data) =>
 export const getSiguienteCorrelativo = (tipo) =>
   request(`/comprobantes/siguiente_correlativo/?tipo=${tipo}`)
 
+export const anularComprobante = (id, motivo) =>
+  request(`/comprobantes/${id}/anular/`, { method: 'POST', body: JSON.stringify({ motivo }) })
+
 // Empresa
 export const getEmpresa = () => request('/empresa/')
 

@@ -36,6 +36,7 @@ function PuntosVenta() {
         total: parseFloat(c.total),
         sunatEnviada: c.sunat_enviada,
         sunatAceptada: c.sunat_aceptada,
+        estado: c.estado || 'vigente',
       })))
     } catch (err) {
       console.error('Error cargando comprobantes:', err)
@@ -186,23 +187,21 @@ function PuntosVenta() {
                 <th>TOTAL</th>
                 <th>IGV</th>
                 <th>IMPORTE</th>
+                <th>ESTADO</th>
                 <th>PDF</th>
-                <th>SUNAT</th>
-                <th>XML</th>
-                <th>CDR</th>
                 <th>IMPRIMIR</th>
               </tr>
             </thead>
             <tbody>
               {comprobantes.length === 0 ? (
                 <tr>
-                  <td colSpan="14" className="center" style={{padding: '2rem', color: '#64748b'}}>
+                  <td colSpan="12" className="center" style={{padding: '2rem', color: '#64748b'}}>
                     No hay comprobantes generados
                   </td>
                 </tr>
               ) : (
                 comprobantes.map(comp => (
-                  <tr key={comp.id}>
+                  <tr key={comp.id} className={comp.estado === 'anulado' ? 'fila-anulada' : ''}>
                     <td>{formatearFecha(comp.fechaEmision)}</td>
                     <td>
                       <span className={`tipo-badge ${comp.tipoDocumento}`}>
@@ -217,25 +216,17 @@ function PuntosVenta() {
                     <td className="right">S/ {comp.igv?.toFixed(2) || '0.00'}</td>
                     <td className="right">S/ {comp.subtotal?.toFixed(2) || '0.00'}</td>
                     <td className="center">
+                      <span className={`estado-badge ${comp.estado}`}>
+                        {comp.estado === 'anulado' ? 'ANULADO' : 'VIGENTE'}
+                      </span>
+                    </td>
+                    <td className="center">
                       <button
                         className="btn-icon btn-pdf"
                         title="Ver PDF"
                         onClick={() => handleVerPDF(comp)}
                       >
                         PDF
-                      </button>
-                    </td>
-                    <td className="center">
-                      <span className="icon-check" title="Aceptado por SUNAT">&#10004;</span>
-                    </td>
-                    <td className="center">
-                      <button className="btn-icon btn-xml" title="Descargar XML">
-                        XML
-                      </button>
-                    </td>
-                    <td className="center">
-                      <button className="btn-icon btn-cdr" title="Descargar CDR">
-                        CDR
                       </button>
                     </td>
                     <td className="center">
@@ -263,7 +254,7 @@ function PuntosVenta() {
           <div className="resumen-item">
             <span className="resumen-label">Total Ventas:</span>
             <span className="resumen-value">
-              S/ {comprobantes.reduce((acc, c) => acc + (c.total || 0), 0).toFixed(2)}
+              S/ {comprobantes.filter(c => c.estado !== 'anulado').reduce((acc, c) => acc + (c.total || 0), 0).toFixed(2)}
             </span>
           </div>
         </div>

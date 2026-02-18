@@ -158,6 +158,43 @@
   color: #15803d;
 }
 
+/* Estado badge */
+.estado-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.estado-badge.vigente {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.estado-badge.anulado {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* Fila anulada */
+.fila-anulada {
+  background: #fef2f2 !important;
+  opacity: 0.7;
+}
+
+.fila-anulada td {
+  text-decoration: line-through;
+  color: #94a3b8;
+}
+
+.fila-anulada .estado-badge,
+.fila-anulada .tipo-badge,
+.fila-anulada .btn-icon {
+  text-decoration: none;
+}
+
 /* Iconos de estado */
 .icon-check {
   color: #10b981;
